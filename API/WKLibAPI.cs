@@ -1,8 +1,12 @@
+using ImuiBepInEx;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using UnityEngine;
 using WKLib.API.Assets;
 using WKLib.API.Config;
 using WKLib.API.UI;
+using WKLib.Utilities;
 
 namespace WKLib.API;
 
@@ -20,14 +24,14 @@ public class WKLibAPI
 
     public AssetService AssetService { get; internal set; } = null;
     
-    private WKLibAPI(string displayName, string guid, string defaultConfigFileName)
+    private WKLibAPI(string displayName, string guid,string modFolderPath, string defaultConfigFileName)
     {
         DisplayName = displayName;
         GUID = guid;
         
         ConfigFolder = new ConfigFolder(displayName);
         DefaultConfigFile = ConfigFolder.GetOrCreateConfigFile(defaultConfigFileName);
-        AssetService = new AssetService(this);
+		AssetService = new AssetService(this, modFolderPath);
     }
 
     /// <summary>
@@ -38,7 +42,8 @@ public class WKLibAPI
     /// <returns>The created API instance.</returns>
     public static WKLibAPI Create(string displayName, string guid)
     {
-        return Create_Internal(displayName, guid);
+		var modFolderPath = Assembly.GetCallingAssembly().Location;
+		return Create_Internal(displayName, guid, modFolderPath);
     }
     
     /// <summary>
@@ -50,10 +55,11 @@ public class WKLibAPI
     /// <returns>The created API instance.</returns>
     public static WKLibAPI Create(string displayName, string guid, string defaultConfigFileName)
     {
-        return Create_Internal(displayName, guid, defaultConfigFileName);
+		var modFolderPath = Assembly.GetCallingAssembly().Location;
+		return Create_Internal(displayName, guid, modFolderPath, defaultConfigFileName);
     }
     
-    private static WKLibAPI Create_Internal(string displayName, string guid, string defaultConfigFileName = "DefaultConfig")
+    private static WKLibAPI Create_Internal(string displayName, string guid, string modFolderPath, string defaultConfigFileName = "DefaultConfig")
     {
         foreach(WKLibAPI API in internalAPIs)
         {
@@ -61,7 +67,7 @@ public class WKLibAPI
                 throw new Exception($"{displayName} collides with {API.DisplayName}, they both have the same guid, {guid}");
         }
 
-        WKLibAPI newAPI = new WKLibAPI(displayName, guid, defaultConfigFileName);
+        WKLibAPI newAPI = new WKLibAPI(displayName, guid, modFolderPath, defaultConfigFileName);
         internalAPIs.Add(newAPI);
         internalAPIs.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
         return newAPI;
